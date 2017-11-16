@@ -12,5 +12,5 @@ jobs:
     working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
     steps:
       - checkout
-      - run: go get -v -t -d github.com/line/line-bot-sdk-go/linebot
+      - run: go get -v github.com/line/line-bot-sdk-go/linebot
       - run: go build server.go
