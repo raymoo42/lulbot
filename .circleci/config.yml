@@ -14,3 +14,5 @@ jobs:
       - checkout
       - run: go get -v github.com/line/line-bot-sdk-go/linebot
       - run: go build server.go
+      - store_artifacts: 
+        path: ./server
