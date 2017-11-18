@@ -17,16 +17,42 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 	"strings"
+	"flag"
+	"os"
 
 	"github.com/line/line-bot-sdk-go/linebot"
+	"github.com/BurntSushi/toml"
 )
 
+type Config struct{
+	Secret string
+	Token string
+}
+
 func main() {
+	// Read from flag
+	confFilePtr := flag.String("conf","/etc/lulbot/config.toml","TOML config file")
+	flag.Parse()
+	if _, err := os.Stat(*confFilePtr); err == nil {
+		log.Printf("Using \"%s\" as configuration file", *confFilePtr)
+
+	} else {
+		if !os.IsNotExist(err) {
+			log.Fatal(err)
+		} else {
+			log.Fatal(err)
+		}
+	}
+	var conf Config
+	if _, err := toml.DecodeFile(*confFilePtr, &conf); err != nil {
+		log.Fatal(err)
+		return
+	}
+
 	bot, err := linebot.New(
-		os.Getenv("CHANNEL_SECRET"),
-		os.Getenv("CHANNEL_TOKEN"),
+		conf.Secret,
+		conf.Token,
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -57,9 +83,11 @@ func main() {
 			}
 		}
 	})
+	log.Print("Trying to Start Server on Port 3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 func checkForLul(msg string) (bool, string) {
