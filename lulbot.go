@@ -15,24 +15,26 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
-	"strings"
-	"flag"
 	"os"
+	"strconv"
+	"strings"
 
-	"github.com/line/line-bot-sdk-go/linebot"
 	"github.com/BurntSushi/toml"
+	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-type Config struct{
+type Config struct {
 	Secret string
-	Token string
+	Token  string
 }
+
 
 func main() {
 	// Read from flag
-	confFilePtr := flag.String("conf","/etc/lulbot/config.toml","TOML config file")
+	confFilePtr := flag.String("conf", "/etc/lulbot/config.toml", "TOML config file")
 	flag.Parse()
 	if _, err := os.Stat(*confFilePtr); err == nil {
 		log.Printf("Using \"%s\" as configuration file", *confFilePtr)
@@ -57,6 +59,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Lul Counter
+	lulz := 0
+
 	// Setup HTTP Server for receiving requests from LINE platform
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		events, err := bot.ParseRequest(req)
@@ -72,11 +77,58 @@ func main() {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
-					islul, reply := checkForLul(message.Text)
-					if (islul) {
-
+					// If theres a lul or luu, we NEED to reply
+					if islul, reply := checkForLul(message.Text); islul {
+						lulz++
 						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
 							log.Print(err)
+							return
+						}
+						// Check for 'just' cmd-prefix, then send appropriate response
+					} else if isCmd, cmd := checkForCmd(message.Text); isCmd {
+						log.Printf("Received Monika command : %s", cmd)
+						switch cmd {
+						case "yuri":
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Have you considered killing yourself?\nIt would be beneficial to your mental health :3")).Do(); err != nil {
+								log.Print(err)
+								return
+							}
+						case "natsuki":
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("cute")).Do(); err != nil {
+								log.Print(err)
+								return
+							}
+
+						case "sayori":
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Ehehehe~")).Do(); err != nil {
+								log.Print(err)
+								return
+							}
+						case "monika":
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Just Monika.")).Do(); err != nil {
+								log.Print(err)
+								return
+							}
+						case "help":
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Usage: just <character name>")).Do(); err != nil {
+								log.Print(err)
+								return
+							}
+						case "carlton":
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Can you make me a sandwich?")).Do(); err != nil {
+								log.Print(err)
+								return
+							}
+						case "lul":
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Lulz so far : " + strconv.Itoa(lulz))).Do(); err != nil {
+								log.Print(err)
+								return
+							}
+						default:
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("git gud")).Do(); err != nil {
+								log.Print(err)
+								return
+							}
 						}
 					}
 				}
@@ -92,14 +144,26 @@ func main() {
 
 func checkForLul(msg string) (bool, string) {
 	lowercase := strings.ToLower(msg)
-	hasLul := strings.Contains(lowercase, "lul")
-	hasLuu := strings.Contains(lowercase, "luu")
+	hasLul := strings.HasPrefix(lowercase, "lul")
+	hasLuu := strings.HasPrefix(lowercase, "luu")
 
-	if (hasLul) {
+	if hasLul {
 		return hasLul, "lul"
-	} else if (hasLuu) {
+	} else if hasLuu {
 		return hasLuu, "luu"
-	} else {
-		return false, ""
 	}
+	return false, ""
+}
+
+func checkForCmd(msg string) (bool, string) {
+	lowercase := strings.ToLower(msg)
+	if strings.HasPrefix(lowercase, "just") {
+		sl := strings.Split(lowercase, " ")
+		if len(sl) > 1 {
+			return true, sl[1]
+		} else {
+			return true, "help"
+		}
+	}
+	return false, ""
 }
