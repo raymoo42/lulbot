@@ -11,4 +11,4 @@ RUN ["mkdir", "-p", "/etc/lulbot/"]
 
 ADD lulbot .
 
-CMD ["lulbot", "-conf", "/etc/lulbot/config.toml"]
+CMD ["./lulbot", "-conf", "/etc/lulbot/config.toml"]
