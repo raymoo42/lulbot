@@ -77,28 +77,19 @@ func main() {
 			if event.Type == linebot.EventTypeMessage {
 				switch message := event.Message.(type) {
 				case *linebot.TextMessage:
-					// If theres a lul or luu, we NEED to reply
-					if islul, reply := checkForLul(message.Text); islul {
-						lulz++
-						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
-							log.Print(err)
-							return
-						}
-						// Check for 'just' cmd-prefix, then send appropriate response
-					} else if isCmd, cmd := checkForCmd(message.Text); isCmd {
+					if isCmd, cmd := checkForCmd(message.Text); isCmd {
 						log.Printf("Received Monika command : %s", cmd)
 						switch cmd {
 						case "yuri":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Have you considered killing yourself?\nIt would be beneficial to your mental health :3")).Do(); err != nil {
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Here's a suggestion.\nHave you considered killing yourself?\nIt'd be beneficial to your mental health.")).Do(); err != nil {
 								log.Print(err)
 								return
 							}
 						case "natsuki":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("cute")).Do(); err != nil {
+							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Monkeys can climb.\nEagles can fly.\nPeople can try.\nBut that's about it\n- Natsuki <the current year>")).Do(); err != nil {
 								log.Print(err)
 								return
 							}
-
 						case "sayori":
 							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Ehehehe~")).Do(); err != nil {
 								log.Print(err)
@@ -130,7 +121,13 @@ func main() {
 								return
 							}
 						}
-					}
+					} else if islul, reply := checkForLul(message.Text); islul {
+						lulz++
+						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
+							log.Print(err)
+							return
+						}
+					} 
 				}
 			}
 		}
@@ -144,8 +141,8 @@ func main() {
 
 func checkForLul(msg string) (bool, string) {
 	lowercase := strings.ToLower(msg)
-	hasLul := strings.HasPrefix(lowercase, "lul")
-	hasLuu := strings.HasPrefix(lowercase, "luu")
+	hasLul := strings.Contains(lowercase, "lul")
+	hasLuu := strings.Contains(lowercase, "luu")
 
 	if hasLul {
 		return hasLul, "lul"
