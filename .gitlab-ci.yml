@@ -33,11 +33,25 @@ dockerize:
 
 deployment:
   stage: deploy
+  before_script:
+    # install ssh-agent
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+
+    # run ssh-agent
+    - eval $(ssh-agent -s)
+
+    # add ssh key stored in SSH_PRIVATE_KEY variable to the agent store
+    - ssh-add <(echo "$SSH_KEY")
+
+    # disable host key checking (NOTE: makes you susceptible to man-in-the-middle attacks)
+    # WARNING: use only in docker container, if you use it with shell you will overwrite your user's ssh config
+    - mkdir -p ~/.ssh
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+
+
   script:
-      - echo $SSH_KEY > id_rsa
-      - eval $(ssh-agent -s)
-      - ssh-keyscan -H 'line.baka-kawaii.de' >> ~/.ssh/known_hosts
-      - ssh line.baka-kawaii.de -l $SSH_USER -i id_rsa
+      - ssh $SSH_USER@line.baka-kawaii.de
+      - ip a
       - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
       - docker run -d -p 3000:3000 --name lulobot registry.gitlab.com/raymoo42/lulbot
   environment: droplet
