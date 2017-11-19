@@ -34,5 +34,8 @@ dockerize:
 deployment:
   stage: deploy
   script:
-    - echo "i tried"
+      - echo $SSH_KEY > id_rsa
+      - ssh line.baka-kawaii.de -l $SSH_USER -i id_rsa
+      - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+      - docker run -d -p 3000:3000 --name lulobot registry.gitlab.com/raymoo42/lulbot
   environment: droplet
