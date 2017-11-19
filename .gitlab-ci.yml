@@ -35,6 +35,8 @@ deployment:
   stage: deploy
   script:
       - echo $SSH_KEY > id_rsa
+      - eval $(ssh-agent -s)
+      - ssh-keyscan -H 'line.baka-kawaii.de' >> ~/.ssh/known_hosts
       - ssh line.baka-kawaii.de -l $SSH_USER -i id_rsa
       - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
       - docker run -d -p 3000:3000 --name lulobot registry.gitlab.com/raymoo42/lulbot
