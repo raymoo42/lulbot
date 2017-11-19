@@ -1,11 +1,10 @@
-image: golang:1.7
-
 stages:
   - build
   - docker_build
   - deploy
 
 compile:
+  image: golang:1.7
   stage: build
   before_script:
     - go get github.com/BurntSushi/toml
@@ -19,6 +18,7 @@ compile:
     - master
 
 dockerize:
+  image: docker:dind
   stage: docker_build
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
