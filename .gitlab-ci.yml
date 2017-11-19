@@ -1,10 +1,12 @@
+image: golang:1.7
+service:
+  - docker:dind
 stages:
   - build
   - docker_build
   - deploy
 
 compile:
-  image: golang:1.7
   stage: build
   before_script:
     - go get github.com/BurntSushi/toml
@@ -25,6 +27,8 @@ dockerize:
     - docker push registry.gitlab.com/raymoo42/lulbot
   only:
     - master
+  tags:
+    - docker
 
 deployment:
   stage: deploy
