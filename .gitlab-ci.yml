@@ -32,6 +32,7 @@ dockerize:
     - docker
 
 deployment:
+image: debian:stretch-slim
   stage: deploy
   before_script:
     # install ssh-agent
@@ -47,8 +48,6 @@ deployment:
     # WARNING: use only in docker container, if you use it with shell you will overwrite your user's ssh config
     - mkdir -p ~/.ssh
     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-
-
   script:
     - ssh $SSH_USER@line.baka-kawaii.de
     - ip a
