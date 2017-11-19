@@ -32,7 +32,7 @@ dockerize:
     - docker
 
 deployment:
-image: debian:stretch-slim
+  image: debian:stretch-slim
   stage: deploy
   before_script:
     # install ssh-agent
