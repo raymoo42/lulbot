@@ -50,6 +50,7 @@ deployment:
     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
   script:
     - ssh $SSH_USER@line.baka-kawaii.de docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    - ssh $SSH_USER@line.baka-kawaii.de 'docker stop lulbot && docker rm lulbot && docker rmi registry.gitlab.com/raymoo42/lulbot:latest' 2>/dev/null
+    - ssh $SSH_USER@line.baka-kawaii.de 'docker stop lulbot && docker rm lulbot || echo lul'
+    - ssh $SSH_USER@line.baka-kawaii.de 'docker rmi registry.gitlab.com/raymoo42/lulbot:latest || echo lul'
     - ssh $SSH_USER@line.baka-kawaii.de docker run -d -p 3000:3000 --name lulobot registry.gitlab.com/raymoo42/lulbot:latest
   environment: droplet
