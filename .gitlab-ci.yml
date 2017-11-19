@@ -50,8 +50,8 @@ deployment:
 
 
   script:
-      - ssh $SSH_USER@line.baka-kawaii.de
-      - ip a
-      - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-      - docker run -d -p 3000:3000 --name lulobot registry.gitlab.com/raymoo42/lulbot
+    - ssh $SSH_USER@line.baka-kawaii.de
+    - ip a
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    - docker run -d -p 3000:3000 --name lulobot registry.gitlab.com/raymoo42/lulbot
   environment: droplet
