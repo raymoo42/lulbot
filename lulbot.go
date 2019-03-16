@@ -18,7 +18,6 @@ import (
 	"cloud.google.com/go/datastore"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -34,15 +33,15 @@ type Command struct {
 }
 
 var (
-	bot    *linebot.Client;
-	ctx    context.Context;
-	db     *sql.DB;
+	bot    *linebot.Client
+	ctx    context.Context
+	db     *sql.DB
 	client *datastore.Client
 )
 
 func main() {
 	// INIT ctx for cloud datastore
-	ctx = context.Background();
+	ctx = context.Background()
 	projectID := "just-monika-234604"
 	ds, err := datastore.NewClient(ctx, projectID)
 	if err != nil {
@@ -57,13 +56,13 @@ func main() {
 	); err != nil {
 		log.Fatal(err)
 	} else {
-		bot = client;
+		bot = client
 	}
 
 	r := mux.NewRouter()
 
 	r.HandleFunc("/callback", LineCallbackHandler)
-	r.HandleFunc("/api/commands", CommandHandler).Methods("GET")
+	r.HandleFunc("/debug", CommandHandler).Methods("GET")
 
 	log.Print("Trying to Start Server on Port 3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {
@@ -74,19 +73,12 @@ func main() {
 
 func CommandHandler(writer http.ResponseWriter, request *http.Request) {
 
-	key := datastore.NameKey("command", "test", nil)
-	var command Command
-	err := client.Get(ctx, key, &command)
+	cmd := "monika"
+	msg, err := getMessage(cmd)
 	if err != nil {
-		log.Println("Couldnt get command / test %v", err)
+		fmt.Fprintf(writer, "Error in Debug Handler : %v", err)
 	}
-
-	jsonB, err := json.Marshal(command)
-	if err != nil {
-		log.Println(err)
-	}
-
-	fmt.Fprintf(writer, "%s", string(jsonB))
+	fmt.Fprintf(writer, "DEBUG Handler got mesage -> %v for %v", msg, cmd)
 }
 
 func LineCallbackHandler(writer http.ResponseWriter, request *http.Request) {
@@ -108,10 +100,12 @@ func LineCallbackHandler(writer http.ResponseWriter, request *http.Request) {
 				if isCmd, cmd := checkForCmd(message.Text); isCmd {
 					log.Printf("Received Monika command : %s", cmd)
 					msg, err := getMessage(cmd)
-					if err != nil {
-						if err2, _ := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err2 != nil {
-							log.Print(err2)
-							return
+					if err == nil {
+						if msg != "" {
+							if err2, _ := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err2 != nil {
+								log.Print(err2)
+								return
+							}
 						}
 					} else {
 						if cmd == "help" {
@@ -144,6 +138,7 @@ func getMessage(s string) (string, interface{}) {
 		log.Println("Error:", err)
 		return "", err
 	}
+	log.Printf("Found Message %v for command %v", command.Message, s)
 	return command.Message, nil
 }
 
