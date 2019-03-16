@@ -15,128 +15,151 @@
 package main
 
 import (
-	"flag"
+	"cloud.google.com/go/datastore"
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/line/line-bot-sdk-go/linebot"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
-
-	"github.com/BurntSushi/toml"
-	"github.com/line/line-bot-sdk-go/linebot"
 )
 
-type Config struct {
-	Secret string
-	Token  string
+type Command struct {
+	Action  string `json:"action"`
+	Message string `json:"message"`
 }
 
+var (
+	bot    *linebot.Client;
+	ctx    context.Context;
+	db     *sql.DB;
+	client *datastore.Client
+)
 
 func main() {
-	// Read from flag
-	confFilePtr := flag.String("conf", "/etc/lulbot/config.toml", "TOML config file")
-	flag.Parse()
-	if _, err := os.Stat(*confFilePtr); err == nil {
-		log.Printf("Using \"%s\" as configuration file", *confFilePtr)
-
-	} else {
-		if !os.IsNotExist(err) {
-			log.Fatal(err)
-		} else {
-			log.Fatal(err)
-		}
+	// INIT ctx for cloud datastore
+	ctx = context.Background();
+	projectID := "just-monika-234604"
+	ds, err := datastore.NewClient(ctx, projectID)
+	if err != nil {
+		log.Fatalf("Failed to create Datastore Client: %v", err)
 	}
-	var conf Config
-	if _, err := toml.DecodeFile(*confFilePtr, &conf); err != nil {
+	client = ds
+
+	// Read LINE vars from Environment
+	if client, err := linebot.New(
+		os.Getenv("LINE_CHANNEL_SECRET"),
+		os.Getenv("LINE_CHANNEL_TOKEN"),
+	); err != nil {
 		log.Fatal(err)
+	} else {
+		bot = client;
+	}
+
+	r := mux.NewRouter()
+
+	r.HandleFunc("/callback", LineCallbackHandler)
+	r.HandleFunc("/api/commands", CommandHandler).Methods("GET")
+
+	log.Print("Trying to Start Server on Port 3000")
+	if err := http.ListenAndServe(":3000", r); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func CommandHandler(writer http.ResponseWriter, request *http.Request) {
+
+	key := datastore.NameKey("command", "test", nil)
+	var command Command
+	err := client.Get(ctx, key, &command)
+	if err != nil {
+		log.Println("Couldnt get command / test %v", err)
+	}
+
+	jsonB, err := json.Marshal(command)
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Fprintf(writer, "%s", string(jsonB))
+}
+
+func LineCallbackHandler(writer http.ResponseWriter, request *http.Request) {
+	events, err := bot.ParseRequest(request)
+	if err != nil {
+		log.Println(request.Method, request.Header, request.GetBody, err)
+
+		if err == linebot.ErrInvalidSignature {
+			writer.WriteHeader(400)
+		} else {
+			writer.WriteHeader(500)
+		}
 		return
 	}
-
-	bot, err := linebot.New(
-		conf.Secret,
-		conf.Token,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Lul Counter
-	lulz := 0
-
-	// Setup HTTP Server for receiving requests from LINE platform
-	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		events, err := bot.ParseRequest(req)
-		if err != nil {
-			if err == linebot.ErrInvalidSignature {
-				w.WriteHeader(400)
-			} else {
-				w.WriteHeader(500)
-			}
-			return
-		}
-		for _, event := range events {
-			if event.Type == linebot.EventTypeMessage {
-				switch message := event.Message.(type) {
-				case *linebot.TextMessage:
-					if isCmd, cmd := checkForCmd(message.Text); isCmd {
-						log.Printf("Received Monika command : %s", cmd)
-						switch cmd {
-						case "yuri":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Here's a suggestion.\nHave you considered killing yourself?\nIt'd be beneficial to your mental health.")).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						case "natsuki":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Monkeys can climb.\nEagles can fly.\nPeople can try.\nBut that's about it\n- Natsuki <the current year>")).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						case "sayori":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Ehehehe~")).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						case "monika":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Just Monika.")).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						case "help":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Usage: just <character name>")).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						case "carlton":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Can you make me a sandwich?")).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						case "lul":
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("Lulz so far : " + strconv.Itoa(lulz))).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						default:
-							if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("git gud")).Do(); err != nil {
-								log.Print(err)
-								return
-							}
-						}
-					} else if islul, reply := checkForLul(message.Text); islul {
-						lulz++
-						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
-							log.Print(err)
+	for _, event := range events {
+		if event.Type == linebot.EventTypeMessage {
+			switch message := event.Message.(type) {
+			case *linebot.TextMessage:
+				if isCmd, cmd := checkForCmd(message.Text); isCmd {
+					log.Printf("Received Monika command : %s", cmd)
+					msg, err := getMessage(cmd)
+					if err != nil {
+						if err2, _ := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err2 != nil {
+							log.Print(err2)
 							return
 						}
-					} 
+					} else {
+						if cmd == "help" {
+							cmds := getAllCommands()
+							head := "Here are the available commands: \n"
+							msg := head + strings.Join(cmds, "\n")
+							if err2, _ := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(msg)).Do(); err2 != nil {
+								log.Print(err2)
+								return
+							}
+						}
+					}
+				} else if islul, reply := checkForLul(message.Text); islul {
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(reply)).Do(); err != nil {
+						log.Print(err)
+						return
+					}
 				}
 			}
 		}
-	})
-	log.Print("Trying to Start Server on Port 3000")
-	if err := http.ListenAndServe(":3000", nil); err != nil {
-		log.Fatal(err)
+	}
+}
+
+func getMessage(s string) (string, interface{}) {
+	key := datastore.NameKey("command", s, nil)
+
+	var command Command
+	err := client.Get(ctx, key, &command)
+	if err != nil {
+		log.Println("Error:", err)
+		return "", err
+	}
+	return command.Message, nil
+}
+
+func getAllCommands() []string {
+	q := datastore.NewQuery("command")
+	var commands []Command
+	_, err := client.GetAll(ctx, q, &commands)
+	if err != nil {
+		log.Printf("Error getting all: %v", err)
 	}
 
+	result := make([]string, len(commands))
+	for i, c := range commands {
+		result[i] = c.Action
+	}
+	return result
 }
 
 func checkForLul(msg string) (bool, string) {
