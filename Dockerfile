@@ -7,8 +7,8 @@ LABEL maintainer="Stefan Turzer<turzer.stefan@gmail.com"
 EXPOSE 3000
 
 WORKDIR /app
-RUN ["mkdir", "-p", "/etc/lulbot/"]
 
 ADD lulbot .
+COPY web/ /app/web/
 
-CMD ["./lulbot", "-conf", "/etc/lulbot/config.toml"]
+CMD ["./lulbot"]

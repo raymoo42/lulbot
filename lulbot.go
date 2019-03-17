@@ -18,6 +18,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -62,8 +63,12 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/callback", LineCallbackHandler)
-	r.HandleFunc("/debug", CommandHandler).Methods("GET")
-	r.HandleFunc("/debug", CreateCommandHandler).Methods("POST")
+	r.HandleFunc("/api/command/", CommandHandler).Methods("GET")
+	r.HandleFunc("/api/command/", CreateCommandHandler).Methods("POST")
+	r.HandleFunc("/api/command/{action}", GetCommandHandler).Methods("GET")
+	r.HandleFunc("/api/command/{action}", DeleteCommandHandler).Methods("DELETE")
+
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("web")))
 
 	log.Print("Trying to Start Server on Port 3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {
@@ -72,20 +77,63 @@ func main() {
 
 }
 
+/**
+	GET ALL
+ */
+func CommandHandler(writer http.ResponseWriter, request *http.Request) {
+	q := datastore.NewQuery("command")
+	var commands []Command
+	_, err := client.GetAll(ctx, q, &commands)
+	if err != nil {
+		log.Printf("Error getting all: %v", err)
+		writer.WriteHeader(500)
+		fmt.Fprintf(writer, "Error fetching commands: %v", err)
+	}
+
+	writer.Header().Set("Content-Type", "application/json")
+	var json = json.NewEncoder(writer)
+	err = json.Encode(commands)
+	if err != nil {
+		writer.WriteHeader(500)
+		log.Printf("Error encoding commands: %v", err)
+	}
+}
+
+func GetCommandHandler(writer http.ResponseWriter, request *http.Request) {
+	vars := mux.Vars(request)
+	cmd := vars["action"]
+	log.Printf("GET COMMAND for action %v", vars["action"])
+
+	key := datastore.NameKey("command", cmd, nil)
+
+	var command Command
+	err := client.Get(ctx, key, &command)
+	if err != nil {
+		writer.WriteHeader(500)
+		fmt.Fprintf(writer, "Error fetching command: %v", err)
+	}
+
+	var json = json.NewEncoder(writer)
+	writer.Header().Set("Content-Type", "application/json")
+
+	err = json.Encode(command)
+	if err != nil {
+		writer.WriteHeader(500)
+		log.Printf("Error encoding commands: %v", err)
+	}
+}
+
+func DeleteCommandHandler(writer http.ResponseWriter, request *http.Request) {
+
+}
+
 func CreateCommandHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.WriteHeader(400)
 }
 
-func CommandHandler(writer http.ResponseWriter, request *http.Request) {
+/**
 
-	cmd := "monika"
-	msg, err := getMessage(cmd)
-	if err != nil {
-		fmt.Fprintf(writer, "Error in Debug Handler : %v", err)
-	}
-	fmt.Fprintf(writer, "DEBUG Handler got mesage -> %v for %v", msg, cmd)
-}
-
+ */
 func LineCallbackHandler(writer http.ResponseWriter, request *http.Request) {
 	events, err := bot.ParseRequest(request)
 	if err != nil {
@@ -134,6 +182,9 @@ func LineCallbackHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+/**
+	Internal helper fucntions
+ */
 func getMessage(s string) (string, interface{}) {
 	key := datastore.NameKey("command", s, nil)
 

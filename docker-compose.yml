@@ -2,4 +2,24 @@ version: '2'
 services:
   lulbot:
     build: .
+    image: lulbot:latest
+    restart: always
     ports:
+      - "3000:3000"
+    volumes:
+      - ./app.json:/app/app.json
+    networks:
+      - web
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/app.json
+      - LINE_CHANNEL_SECRET=test
+      - LINE_CHANNEL_TOKEN=test
+    labels:
+      - "traefik.docker.network=web"
+      - "traefik.enable=true"
+      - "traefik.basic.frontend.rule=Host:www.just-monika.de"
+      - "traefik.basic.port=3000"
+      - "traefik.basic.protocol=http"
+networks:
+  web:
+    external: true
