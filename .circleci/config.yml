@@ -15,7 +15,7 @@ jobs:
           fingerprints:
             - "01:ca:bb:b7:36:52:4a:86:d0:01:b1:d3:04:05:ce:a9"
       - run: scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null lulbot stu@www.just-monika.de:~/
-      - run: ssh stu@www.just-monika.de sudo docker build -t lulbot .
-      - run: ssh stu@www.just-monika.de sudo docker-compose -f /opt/app/docker-compose.yml down
-      - run: ssh stu@www.just-monika.de sudo docker-compose -f /opt/app/docker-compose.yml up -d
+      - run: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null stu@www.just-monika.de sudo docker build -t lulbot .
+      - run: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null stu@www.just-monika.de sudo docker-compose -f /opt/app/docker-compose.yml down
+      - run: ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null stu@www.just-monika.de sudo docker-compose -f /opt/app/docker-compose.yml up -d
 
