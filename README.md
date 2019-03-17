@@ -1,7 +1,5 @@
-[![CircleCI](https://circleci.com/gh/raymoo42/lulbot.svg?style=svg)](https://circleci.com/gh/raymoo42/lulbot)
+[![CircleCI](https://circleci.com/gh/raymoo42/lulbot/tree/master.svg?style=svg&circle-token=65350787203ad173a6c968916f33dc0ec08d3957)](https://circleci.com/gh/raymoo42/lulbot/tree/master)
 
 ## Lul-Bot
 
-Responds to every lul and luu
-
-Thats about it, lul
+TODO
