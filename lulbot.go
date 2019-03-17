@@ -63,12 +63,17 @@ func main() {
 
 	r.HandleFunc("/callback", LineCallbackHandler)
 	r.HandleFunc("/debug", CommandHandler).Methods("GET")
+	r.HandleFunc("/debug", CreateCommandHandler).Methods("POST")
 
 	log.Print("Trying to Start Server on Port 3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {
 		log.Fatal(err)
 	}
 
+}
+
+func CreateCommandHandler(writer http.ResponseWriter, request *http.Request) {
+	writer.WriteHeader(400)
 }
 
 func CommandHandler(writer http.ResponseWriter, request *http.Request) {
@@ -160,12 +165,15 @@ func getAllCommands() []string {
 func checkForLul(msg string) (bool, string) {
 	lowercase := strings.ToLower(msg)
 	hasLul := strings.Contains(lowercase, "lul")
+	hasLol := strings.Contains(lowercase, "lol")
 	hasLuu := strings.Contains(lowercase, "luu")
 
 	if hasLul {
 		return hasLul, "lul"
 	} else if hasLuu {
 		return hasLuu, "luu"
+	} else if hasLol {
+		return hasLol, "lol"
 	}
 	return false, ""
 }
