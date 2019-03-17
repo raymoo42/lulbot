@@ -9,6 +9,6 @@ jobs:
       - run: go get -v -t -d ./...
       - run: go build lulbot.go
       - store_artifacts:
-        path: lulbot
-        prefix: bin
+          path: lulbot
+          prefix: bin
       
